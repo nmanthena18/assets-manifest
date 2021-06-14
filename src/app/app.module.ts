@@ -17,6 +17,6 @@ import { MicrofrontendComponent } from './microfrontend/microfrontend.component'
   ],
   providers: [],
   bootstrap: [AppComponent],
-  schemas: []
+  schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class AppModule { }

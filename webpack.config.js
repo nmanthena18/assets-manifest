@@ -4,7 +4,7 @@ module.exports = {
 
   plugins: [
     new WebpackAssetsManifest({
-      output: 'assets-manifest.json',
+      output: 'asset-manifest.json',
       transform: (f) => {
         return f;
       },
