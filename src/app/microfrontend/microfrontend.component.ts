@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { AfterViewInit, Component, ElementRef, Input, OnInit, Renderer2, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, Input, OnInit, Renderer2, ViewChild } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { throwError } from 'rxjs';
 
@@ -14,21 +14,21 @@ export class MicrofrontendComponent implements OnInit, AfterViewInit {
   @Input() config: any;
 
   constructor(private http: HttpClient,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private cdRef: ChangeDetectorRef
   ) {
   }
 
   ngOnInit(): void {
+
     this.loadScripts(this.config.id, this.config.path).then((res: any) => {
       if (this.config.type === 'fn') {
-        try {
-          if (window[this.config.selector]) {
-            let caller: any = window[this.config.selector];
-            caller(this.config.eleId);
-          }
+        if (window[this.config.selector]) {
+          let caller: any = window[this.config.selector];
+          caller(this.config.eleId);
         }
-        catch {
-          throwError('nooo')
+        else {
+          throw new Error(`${this.config.selector} is not a function`)
         }
       }
     }).catch(err => {
@@ -39,6 +39,7 @@ export class MicrofrontendComponent implements OnInit, AfterViewInit {
   ngAfterViewInit() {
     if (this.config.type === 'selector') {
       this.selector = this.sanitizer.bypassSecurityTrustHtml(`<${this.config.selector}></${this.config.selector}>`);
+      this.cdRef.detectChanges();
     }
   }
 
