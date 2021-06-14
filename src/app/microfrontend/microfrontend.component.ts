@@ -10,6 +10,7 @@ import { throwError } from 'rxjs';
 })
 export class MicrofrontendComponent implements OnInit, AfterViewInit {
   selector: any;
+  isScriptLoad: any;
   @Input() config: any;
 
   constructor(private http: HttpClient,
@@ -18,36 +19,27 @@ export class MicrofrontendComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    console.log(this.config)
     this.loadScripts(this.config.id, this.config.path).then((res: any) => {
-      if (res.status === 200) {
+      if (this.config.type === 'fn') {
+        try {
+          if (window[this.config.selector]) {
+            let caller: any = window[this.config.selector];
+            caller(this.config.eleId);
+          }
+        }
+        catch {
+          throwError('nooo')
+        }
       }
+    }).catch(err => {
+      console.log(err)
     })
   }
 
   ngAfterViewInit() {
     if (this.config.type === 'selector') {
       this.selector = this.sanitizer.bypassSecurityTrustHtml(`<${this.config.selector}></${this.config.selector}>`);
-    } else if (this.config.type === 'fn') {
-      console.log(this.config.selector, window[this.config.selector])
-      try {
-        if (document.getElementById(this.config.id)) {
-          console.log(document.getElementById(this.config.id))
-          setTimeout(() => {
-            let caller: any = window[this.config.selector];
-            console.log(window[this.config.selector])
-            caller(this.config.eleId);
-          }, 200)
-        }
-      }
-      catch {
-        throwError('nooo')
-      }
-
-    } else {
-      throwError('Invalid selector');
     }
-
   }
 
   loadScripts(id: string, host: string) {
@@ -60,28 +52,27 @@ export class MicrofrontendComponent implements OnInit, AfterViewInit {
         //load script
 
         let script: HTMLScriptElement = document.createElement('script');
-        this.http.get(host + '/asset-manifest.json').subscribe((res: any) => {
-          console.log('preparing to load...')
-          script.src = host + '/' + (res['main.js'] || res.entrypoints[0]);
-        })
+        this.http.get(host + '/asset-manifest.json').subscribe((res: any,) => {
+          try {
+            script.src = host + '/' + (res['main.js'] || res.entrypoints[0]);
+          }
+          catch {
+            throwError("JS file not found");
+          }
+        }, err => console.log(err))
 
         //load script
         script.type = 'text/javascript';
         script.id = id;
         script.async = true;
-        if (script.onloadstart) {  //IE
-          script.onloadstart = () => {
-            if (script.onloadeddata) {
-              resolve({ script: id, loaded: true, status: 'Loading start' });
-            }
-          };
-        } else {  //Others
-          script.onload = () => {
-            resolve({ script: id, loaded: true, status: 200 });
-          };
-        }
-        script.onerror = (error: any) => reject({ script: id, loaded: false, status: 'error', error });
+        script.onload = () => {
+          resolve({ script: id, loaded: true, status: 200 });
+        };
+        script.onerror = (error: any) => {
+          reject({ script: id, loaded: false, status: 'error', error })
+        };
         document.getElementsByTagName('head')[0].appendChild(script);
+
       }
     });
   };
