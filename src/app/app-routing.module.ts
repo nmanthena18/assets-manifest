@@ -11,10 +11,6 @@ const routes: Routes = [
   {
     path: 'service',
     component: ServiceComponent
-  },
-  {
-    path: 'about',
-    redirectTo: 'about'
   }
 ];
 
